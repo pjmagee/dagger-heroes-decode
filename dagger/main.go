@@ -1,16 +1,4 @@
-// A generated module for DaggerHeroesDecode functions
-//
-// This module has been generated via dagger init and serves as a reference to
-// basic module structure as you get started with Dagger.
-//
-// Two functions have been pre-created. You can modify, delete, or add to them,
-// as needed. They demonstrate usage of arguments and return types using simple
-// echo and grep commands. The functions can be called from the dagger CLI or
-// from one of the SDKs.
-//
-// The first line in this comment block is a short description line and the
-// rest is a long description with more detail on the module's purpose or usage,
-// if appropriate. All modules should have a short description.
+// A dagger module of Heroes Decode by HeroesToolChest that decodes Heroes of the Storm replays.
 
 package main
 
@@ -21,21 +9,18 @@ import (
 )
 
 type DaggerHeroesDecode struct {
-	StormReplay *dagger.File
-	Args        []string
 }
 
-func (m *DaggerHeroesDecode) WithStormReplay(ctx context.Context, path *dagger.File) (*DaggerHeroesDecode, error) {
-	m.StormReplay = path
-	return m, nil
-}
+func (m *DaggerHeroesDecode) Decode(
+	ctx context.Context,
+	// +optional
+	// The replay file to decode
+	file *dagger.File,
+	// +optional
+	// Additional arguments to pass to the decoder
+	args []string,
 
-func (m *DaggerHeroesDecode) WithArgs(ctx context.Context, args []string) (*DaggerHeroesDecode, error) {
-	m.Args = args
-	return m, nil
-}
-
-func (m *DaggerHeroesDecode) Decode(ctx context.Context) (*Container, error) {
+) (*Container, error) {
 
 	repo := dag.Git("https://github.com/HeroesToolChest/HeroesDecode.git")
 	dir := repo.Tag("v1.4.0").Tree()
@@ -53,11 +38,19 @@ func (m *DaggerHeroesDecode) Decode(ctx context.Context) (*Container, error) {
 		WithWorkdir("/app").
 		WithDirectory("/app", build.Directory("/app/bin/Release/net8.0/publish"))
 
-	cmd := []string{"./HeroesDecode", "--replay-path", replayPath}
-	cmd = append(cmd, m.Args...)
+	cmd := []string{"./HeroesDecode"}
+
+	if file != nil {
+		replay := []string{"--replay-path", replayPath}
+		app.WithFile(replayPath, file)
+		cmd = append(cmd, replay...)
+	}
+
+	if args != nil {
+		cmd = append(cmd, args...)
+	}
 
 	return app.
-		WithFile(replayPath, m.StormReplay).
 		WithExec(cmd).
 		Sync(ctx)
 }
